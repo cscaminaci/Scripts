@@ -6,9 +6,11 @@ This is a PowerShell script that helps in extracting and structuring data from H
 
 To get started with the script, you need to set your Halo client ID and client secret in the `Get-HaloPSAToken` function. You also need to replace `YOURHALOPSAURL` with the actual URL of your Halo PSA.
 
+```powershell
 $HaloClientID = "<CLIENT ID>"
 $HaloClientSecret = "<CLIENT SECRET>"
 $uri = "https://YOURHALOPSAURL.HALOPSA.COM/auth/token"
+```
 
 ## Functions
 
@@ -21,25 +23,25 @@ The script contains two main functions:
 
 The script imports a list of closed ticket numbers from a CSV file for training the AI model. Make sure to replace `path_to_closed_tickets.csv` with the actual path to your CSV file.
 
-
+```powershell
 $Global:ImportList = Import-Csv -Path "C:\Users\username\path_to_closed_tickets.csv"
-
+```
 
 ## Filtering
 
 The script includes a filter to exclude certain tickets based on specific conditions, such as tickets with no clearance note or tickets that have been closed via merge.
 
-
+```powershell
 $Global:TicketsToScan = $ImportList | Where-Object { $_.ClearanceNote -ne "$null" -and $_.ClearanceNote -notmatch "Closed via Merge" -and $_.ClearanceNote -notmatch "Automated Closure Sent" -and $_.ClearanceNote -notmatch "#NAME?"} | Sort-Object -Property RequestID -Descending
-
+```
 
 ## Output
 
 The script outputs the structured data into a CSV file. Replace `export.csv` with the path and name of the file you wish to output the structured data to.
 
-
+```powershell
 $PromptToAdd | Export-Csv -Path "C:\Users\username\export.csv" -NoTypeInformation -Append
-
+```
 
 ## Progress Tracking
 
