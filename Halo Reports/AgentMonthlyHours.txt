@@ -1,0 +1,39 @@
+SELECT 
+    CRH.AgentName,
+    CRH.ChargeRateName,
+    CRH.TotalHoursWorkedByChargeRate,
+    AH.TotalHoursWorked,
+    (CRH.TotalHoursWorkedByChargeRate * 100.0) / AH.TotalHoursWorked AS PercentageHoursWorkedByChargeRate,
+    160 AS TotalWorkingHours,
+    (CRH.TotalHoursWorkedByChargeRate * 100.0) / 160 AS PercentageOfTotalWorkingHours,
+    160 - AH.TotalHoursWorked AS UnproductiveHours,
+    ((160 - AH.TotalHoursWorked) * 100.0) / 160 AS PercentageUnproductiveHours
+FROM 
+    (SELECT 
+        actions.who AS AgentName,
+        lookup.fvalue AS ChargeRateName,
+        SUM(ISNULL(actions.timetaken, 0)) AS TotalHoursWorkedByChargeRate
+    FROM 
+        actions 
+        INNER JOIN faults ON faults.faultid=actions.faultid 
+        INNER JOIN lookup ON lookup.fid=17 AND lookup.fcode=actions.actioncode+1
+    WHERE 
+        actions.timetaken<>0 
+        AND actions.whe_ >= @startdate 
+        AND actions.whe_ <= @enddate 
+    GROUP BY 
+        actions.who, 
+        lookup.fvalue) AS CRH
+INNER JOIN 
+    (SELECT 
+        actions.who AS AgentName,
+        SUM(ISNULL(actions.timetaken, 0)) AS TotalHoursWorked
+    FROM 
+        actions
+    WHERE 
+        actions.timetaken<>0 
+        AND actions.whe_ >= @startdate 
+        AND actions.whe_ <= @enddate 
+    GROUP BY 
+        actions.who) AS AH
+ON CRH.AgentName = AH.AgentName

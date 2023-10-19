@@ -1,0 +1,101 @@
+SELECT
+    [Data].UName AS [Agent],
+    [Data].USection AS [Team],
+    RIGHT('000' + CAST(SUM([Data].Time) / 60 AS VARCHAR(10)), 3) + ':' + RIGHT('00' + CAST(SUM([Data].Time) % 60 AS VARCHAR(2)), 2) AS [Working Hours],
+    ISNULL(Faults.CTC, 0) AS [Tickets Closed],
+    ISNULL(CAST(FLOOR(COALESCE(CAST(ISNULL(Billable.BillableTime, 0) * 60 AS INT), 0) / 60) AS NVARCHAR(9)) + ':' + RIGHT('0' + CAST(FLOOR(COALESCE(CAST(ISNULL(Billable.BillableTime, 0) * 60 AS INT), 0) % 60) AS NVARCHAR(2)), 2), '00:00') AS [Billable Hours],
+    ISNULL(CAST(FLOOR(COALESCE(CAST(ISNULL(NoCharge.NoChargeTime, 0) * 60 AS INT), 0) / 60) AS NVARCHAR(9)) + ':' + RIGHT('0' + CAST(FLOOR(COALESCE(CAST(ISNULL(NoCharge.NoChargeTime, 0) * 60 AS INT), 0) % 60) AS NVARCHAR(2)), 2), '00:00') AS [No Charge Time],
+    cast(120 - round(ISNULL(Billable.BillableTime, 0), 2) as money) as 'Time Remaining',
+    CASE WHEN cast(round(ISNULL(Billable.BillableTime, 0), 2) as money) > 120 THEN cast(round(ISNULL(Billable.BillableTime, 0), 2) - 120 as money)
+    ELSE 0 END AS 'Time Over'
+FROM
+    (
+        SELECT
+            UName,
+            UNum,
+            MAX(USection) AS [USection],
+            ISNULL(DATEDIFF(MINUTE, StartTime, EndTime), 0) AS [Time]
+        FROM
+            Calendar
+            CROSS APPLY (
+                SELECT
+                    *
+                FROM
+                    UName
+                WHERE
+                    UName NOT LIKE 'Unassigned'
+            ) AS [UName]
+            LEFT JOIN Timesheet ON UNum = TSUNum AND Date_ID = TSDate
+            LEFT JOIN (
+                SELECT
+                    WhoAgentID,
+                    FORMAT(Whe_, 'dd/MM/yyyy') AS [ActionDate],
+                    MIN(DATEADD(MINUTE, ISNULL(-60 * TimeTaken, 0), Whe_)) AS [FirstAction],
+                    MAX(Whe_) AS [LastAction]
+                FROM
+                    Actions
+                WHERE
+                    Whe_ BETWEEN @startdate AND @enddate
+                GROUP BY
+                    WhoAgentID,
+                    FORMAT(Whe_, 'dd/MM/yyyy')
+            ) AS [Actions] ON Actions.WhoAgentID = UNum AND Actions.ActionDate = FORMAT(Date_ID, 'dd/MM/yyyy')
+            OUTER APPLY (
+                SELECT
+                    IIF(TSStartDate > 0, TSStartDate, Actions.FirstAction) AS [StartTime],
+                    IIF(FORMAT(GETDATE(), 'dd/MM/yyyy') = Actions.ActionDate, GETDATE(), IIF(TSEndDate > 0, TSEndDate, Actions.LastAction)) AS [EndTime]
+            ) AS [Dates]
+        WHERE
+            Date_ID BETWEEN @startdate AND @enddate
+            AND UNum = $agentid
+        GROUP BY
+            UName,
+            UNum,
+            Dates.EndTime,
+            Dates.StartTime
+    ) AS [Data]
+LEFT JOIN (
+    SELECT
+        ClearWhoInt,
+        COUNT(*) AS CTC
+    FROM
+        Faults
+    WHERE
+        DateOccured BETWEEN @startdate AND @enddate
+        AND FDeleted = 0
+        AND FMergedIntoFaultID = 0
+    GROUP BY
+        ClearWhoInt
+) AS Faults ON [Data].UNum = Faults.ClearWhoInt
+LEFT JOIN (
+    SELECT
+        actions.who AS WhoAgentID,
+        SUM(ISNULL(actions.timetaken, 0)) AS BillableTime
+    FROM 
+        actions 
+        INNER JOIN lookup ON lookup.fid=17 AND lookup.fcode=actions.actioncode+1
+    WHERE
+        lookup.fvalue <> 'No Charge'
+        AND actions.whe_ BETWEEN @startdate AND @enddate
+    GROUP BY
+        actions.who
+) AS Billable ON [Data].UName = Billable.WhoAgentID
+LEFT JOIN (
+    SELECT
+        actions.who AS WhoAgentID,
+        SUM(ISNULL(actions.timetaken, 0)) AS NoChargeTime
+    FROM 
+        actions 
+        INNER JOIN lookup ON lookup.fid=17 AND lookup.fcode=actions.actioncode+1
+    WHERE
+        lookup.fvalue = 'No Charge'
+        AND actions.whe_ BETWEEN @startdate AND @enddate
+    GROUP BY
+        actions.who
+) AS NoCharge ON [Data].UName = NoCharge.WhoAgentID
+GROUP BY
+    [Data].UName,
+    [Data].USection,
+    Faults.CTC,
+    Billable.BillableTime,
+    NoCharge.NoChargeTime

@@ -1,0 +1,27 @@
+SELECT
+    f.faultid AS "Project ID",
+    f.Symptom AS "Project Name",
+    (SELECT aareadesc FROM area WHERE aarea = f.areaint) AS "Client",
+    (SELECT tstatusdesc FROM tstatus WHERE tstatus = f.status) AS "Status",
+    f.fProjectStartDate AS "Project Start Date",
+    bt.btname AS "Budget Name",
+    fb.FBThours AS "Budgeted Hours",
+    fb.FBTactualtime AS "Actual Hours",
+    fb.FBThours - fb.FBTactualtime AS "Remaining Hours",
+    fb.FBTrate AS "Budget Rate",
+    fb.FBThours * fb.FBTrate AS "Budget Cost",
+    fb.FBTactualtime * (SELECT isnull(ucostprice,0) FROM uname WHERE unum = assignedtoint) AS "Actual Cost",
+    (fb.FBThours - fb.FBTactualtime) * fb.FBTrate AS "Remaining Cost",
+    fb.FBTactualtime * fb.FBTrate - fb.FBTactualtime * (SELECT isnull(ucostprice,0) FROM uname WHERE unum = assignedtoint) AS "Profit/Loss in $",
+    CASE
+        WHEN fb.FBThours * fb.FBTrate = 0 THEN 0
+        ELSE ((fb.FBTactualtime * fb.FBTrate - fb.FBTactualtime * (SELECT isnull(ucostprice,0) FROM uname WHERE unum = assignedtoint)) / (fb.FBThours * fb.FBTrate)) * 100
+    END AS "Profit/Loss %"
+FROM
+    faults f
+JOIN
+    faultbudget fb ON f.faultid = fb.FBTfaultid
+LEFT JOIN
+    budgettype bt ON fb.FBTbtid = bt.btid
+WHERE
+    f.fdeleted=0 AND f.FMergedIntoFaultid = 0 AND f.requesttypenew IN (SELECT rtid FROM REQUESTTYPE where RTIsProject = 1)
