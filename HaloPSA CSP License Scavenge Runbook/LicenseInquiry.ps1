@@ -4,24 +4,13 @@ param ([Parameter (Mandatory = $false)]
 
 Function Connect_MgGraph
 {
-	$MsalToken = Get-MsalToken -TenantId $TenantId -ClientId $AppId -ClientSecret ($ClientSecret | ConvertTo-SecureString -AsPlainText -Force)
-	
-	#Connect to Graph using access token
-	Connect-Graph -AccessToken $MsalToken.AccessToken
-	
-	Select-MgProfile -Name beta
+	$AppId = "<APP ID FOR HALOCSP>"
+	$CertificateName = "<NAME OF CERT IN AUTOMATION ACCOUNT>" 
+    $Certificate = Get-AutomationCertificate -Name $CertificateName
+	Connect-Graph -TenantId $TenantID -AppId $AppId -Certificate $Certificate
 	
 }
 
-Import-Module HaloAPI
-Import-Module MSAL.PS
-Import-Module Microsoft.Graph.Authentication
-Import-Module Microsoft.Graph.Users
-Import-Module Microsoft.Graph.Identity.DirectoryManagement
-Import-Module Microsoft.Graph.Identity.SignIns
-Import-Module Az.KeyVault
-Import-Module Az.Accounts
-Import-Module Az.Automation
 
 #Unpack the JSON
 $Data = ConvertFrom-Json -InputObject $WebHookData.RequestBody
@@ -30,30 +19,24 @@ $TicketID = $data[0].content.TicketID
 $RequestID = $data[0].id
 $Timestamp = $data[0].timestamp
 $RefCharacter = $HaloUser.IndexOf("@")
-$TenantID = $HaloUser.Substring($RefCharacter + 1)
+$Global:TenantID = $HaloUser.Substring($RefCharacter + 1)
 
-$RunAsConnection = Get-AutomationConnection -Name "AzureRunAsConnection"
 
 #Get the Azure context info
 try
 {
-	Connect-AzAccount `
-					  -ServicePrincipal `
-					  -Tenant $RunAsConnection.TenantId `
-					  -ApplicationId $RunAsConnection.ApplicationId `
-					  -CertificateThumbprint $RunAsConnection.CertificateThumbprint | Write-Verbose
-	
-	Set-AzContext -Subscription $RunAsConnection.SubscriptionID | Write-Verbose
+	Connect-AzAccount -Identity
 }
 catch
 {
 	Write-Error $_.Exception.Message
 }
 
-#Retrieve Keyvault Secrets and set other variables
-$VaultName = '<YOUR VAULT NAME>'
-$AppId = Get-AzKeyVaultSecret -vaultname $VaultName -Name "<YOUR CSP APP ID>" -AsPlainText -EA Stop
-$ClientSecret = Get-AzKeyVaultSecret -vaultname $VaultName -Name "<YOUR CSP SECRET>" -AsPlainText -EA Stop
+$Vaultname = "<KEYVAULTNAME>"
+$HaloAppID = Get-AzKeyVaultSecret -vaultname $VaultName -Name "HaloAppID" -AsPlainText -EA Stop
+$HaloSecret = Get-AzKeyVaultSecret -vaultname $VaultName -Name "HaloSecret" -AsPlainText -EA Stop
+$HaloTenantName = "<HALOTENANTNAME>"
+$AgentURL = "https://BASEURLFORHALOPSA"
 
 Connect_MgGraph
 if ((Get-MgContext) -ne "")
@@ -69,7 +52,7 @@ $licenseTable = (Invoke-WebRequest -Uri $LicenseTableURL).ToString() | ConvertFr
 
 # Create a hash table of the license names, this is faster to search for the next step
 $licenseTableHash = @{ }
-$licenseTable | foreach { $licenseTableHash[$_.GUID] = $_.Product_Display_Name }
+$licenseTable | ForEach-Object { $licenseTableHash[$_.GUID] = $_.Product_Display_Name }
 
 
 $skusHash = @{ } # An empty hashtable
@@ -154,7 +137,7 @@ $report = foreach ($user in $users)
 }
 
 # Create the HTML report
-$htmlhead = "<html>
+<#$htmlhead = "<html>
 	   <style>
 	   BODY{font-family: Arial; font-size: 8pt;}
 	   H3{font-size: 12px; font-family: 'Segoe UI Light','Segoe UI','Lucida Grande',Verdana,Arial,Helvetica,sans-serif;}
@@ -169,7 +152,68 @@ $htmlhead = "<html>
 	   <body>
            <div align=center>
            <p><h3>Disabled User License Scavenge Report for $TenantID</h3></p><br><br>"
-
+#>
+$htmlhead = @"
+<html>
+<head>
+<style>
+BODY {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 10pt;
+    background: #f4f4f4;
+    color: #333;
+    margin: 0;
+    padding: 20px;
+}
+H3 {
+    font-size: 18px;
+    color: #444;
+}
+TABLE {
+    border-collapse: collapse;
+    width: 100%;
+    margin-top: 20px;
+}
+TH, TD {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+TH {
+    background-color: #4CAF50;
+    color: white;
+}
+TR:nth-child(even) {
+    background-color: #f2f2f2;
+}
+TR:hover {
+    background-color: #ddd;
+}
+.pass {
+    background-color: #B7EB83;
+}
+.warn {
+    background-color: #FFF275;
+}
+.fail {
+    background-color: #FF2626;
+    color: white;
+}
+.info {
+    background-color: #85D4FF;
+}
+.footer {
+    text-align: center;
+    margin-top: 40px;
+    font-size: 9pt;
+    color: #666;
+}
+</style>
+</head>
+<body>
+    <div align="center">
+        <h3>Disabled User License Scavenge Report for $TenantID</h3>
+"@
 $htmlbody1 = $Report | ConvertTo-Html -Fragment
 $htmlheader2 = "<br><br><p><h3>Live Snapshot of Azure AD License Status</h3></p><br><br>"
 $htmlbody2 = $SkuData | ConvertTo-Html -Fragment
@@ -178,10 +222,34 @@ $htmltail =
 "<p>-----------------------------------------------------------------------------------------------------------------------------</p>" +
 "<p>Number of licensed disabled user accounts found:    " + $Report.Count + "</p>" +
 "<p>Number of unlicensed disabled user accounts found:  " + $UnlicensedAccounts + "</p>" +
-"<p>-----------------------------------------------------------------------------------------------------------------------------</p>"
+"<p>-----------------------------------------------------------------------------------------------------------------------------</p>" +
+"</body> </html>"
+
 
 $htmlreport = $htmlhead + $htmlbody1 + $htmlheader2 + $htmlbody2 + $htmltail
-$Token = Get-HaloPSAToken
-New-HaloPrivateNote -Note $htmlreport -TicketID $TicketID -Token $Token 
+Write-Output "Connecting to HaloPSA"
+
+try
+{
+	Connect-HaloAPI -ClientID $HaloAppID -Tenant $HaloTenantName -URL $AgentURL -ClientSecret $HaloSecret -Scopes "all"
+	Write-Output "Successfully connected to HaloPSA"
+}
+catch
+{
+	Write-Output $_.Exception.Message
+}
+
+$Body = [PSCustomObject]@{
+    "ticket_id" = "$TicketID"
+    "outcome" = "Private Note"
+    "outcome_id" = 7
+    "who_type" = 1
+    "who" = "Automation API"
+    "who_agentid" = 25
+    "hiddenfromuser" = 1
+    "note" = "$htmlreport"
+}
+
+New-HaloAction -Action $Body 
 
 Disconnect-MgGraph
