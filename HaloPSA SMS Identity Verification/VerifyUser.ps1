@@ -1,41 +1,15 @@
-<#	
-	.NOTES
-	===========================================================================
-	 Created on:   	8/27/2022 15:15
-	 Created by:   	Ceej - The MSP Automator
-	 Organization: 	MSPAutomator.com
-	 Filename:     	VerifyUser.ps1
-	===========================================================================
-	.DESCRIPTION
-		Azure Runbook to verify a user identity.
-#>
-
-
 param ([Parameter (Mandatory = $false)]
 	[object]$WebHookData
 )
 
 Function Connect_MgGraph
 {
-	$MsalToken = Get-MsalToken -TenantId $TenantId -ClientId $CSPAppId -ClientSecret ($CSPClientSecret | ConvertTo-SecureString -AsPlainText -Force)
-	
-	#Connect to Graph using access token
-	Connect-Graph -AccessToken $MsalToken.AccessToken
-	
-	Select-MgProfile -Name beta
+	$AppId = "<APP ID>"
+	$CertificateName = "<NAME OF CERT IN AUTOMATION ACCOUNT>" 
+    $Certificate = Get-AutomationCertificate -Name $CertificateName
+	Connect-Graph -TenantId $TenantID -AppId $AppId -Certificate $Certificate
 	
 }
-
-Import-Module HaloAPI
-Import-Module MSAL.PS
-Import-Module Microsoft.Graph.Authentication
-Import-Module Microsoft.Graph.Users
-Import-Module Microsoft.Graph.Identity.DirectoryManagement
-Import-Module Microsoft.Graph.Identity.SignIns
-Import-Module SqlServer
-Import-Module Az.KeyVault
-Import-Module Az.Accounts
-Import-Module Az.Automation
 
 #Unpack the JSON
 $Data = ConvertFrom-Json -InputObject $WebHookData.RequestBody
@@ -45,51 +19,35 @@ $RequestID = $data[0].id
 $Timestamp = $data[0].timestamp
 $RefCharacter = $HaloUser.IndexOf("@")
 $TenantID = $HaloUser.Substring($RefCharacter + 1)
-$random = Get-Random -Minimum 100000 -Maximum 999999
 
-#Get Azure RunAs information so we can access the keyvault
-$RunAsConnection = Get-AutomationConnection -Name "AzureRunAsConnection"
-
-#Connect as Azure RunAs and get the Azure context info
+#Get the Azure context info
 try
 {
-	Connect-AzAccount `
-					  -ServicePrincipal `
-					  -Tenant $RunAsConnection.TenantId `
-					  -ApplicationId $RunAsConnection.ApplicationId `
-					  -CertificateThumbprint $RunAsConnection.CertificateThumbprint | Write-Verbose
-	
-	Set-AzContext -Subscription $RunAsConnection.SubscriptionID | Write-Verbose
+	Connect-AzAccount -Identity
 }
 catch
 {
 	Write-Error $_.Exception.Message
 }
 
-#VARIABLE DEFINITIONS - CHANGE THESE TO SUIT YOUR ENVIRONMENT
-$VaultName = '#############'
-#Twilio info
-$sid = Get-AzKeyVaultSecret -vaultname $VaultName -Name "###########" -AsPlainText -EA Stop
-$token = Get-AzKeyVaultSecret -vaultname $VaultName -Name "##########" -AsPlainText -EA Stop
-$FromNumber = "+1##############"
-#CSP or your AppID info
-$CSPAppId = Get-AzKeyVaultSecret -vaultname $VaultName -Name "###########" -AsPlainText -EA Stop
-$CSPClientSecret = Get-AzKeyVaultSecret -vaultname $VaultName -Name "##########" -AsPlainText -EA Stop
-#HaloAPI info
-$HaloAppId = Get-AzKeyVaultSecret -vaultname $VaultName -Name "###########" -AsPlainText -EA Stop
-$HaloSecret = Get-AzKeyVaultSecret -vaultname $VaultName -Name "###########" -AsPlainText -EA Stop
-$AgentDomain = "HTTPS://YOURAGENTDOMAIN.HALOPSA.COM"
-#SQL server info - remove these five lines if not logging to SQL
-$SQLServer = "##########.database.windows.net"
-$tableName = "dbo.##########"
-$DBSecret = Get-AzKeyVaultSecret -vaultname $VaultName -Name "##########" -AsPlainText -EA Stop
-$DBName = "############"
-$SQLUser = "############"
+#Retrieve Keyvault Secrets and set other variables
+$random = Get-Random -Minimum 100000 -Maximum 999999
+$VaultName = '<kevaultname>'
+$sid = Get-AzKeyVaultSecret -vaultname $VaultName -Name "<twiliosid>" -AsPlainText -EA Stop
+$token = Get-AzKeyVaultSecret -vaultname $VaultName -Name "<twiliotoken>" -AsPlainText -EA Stop
+$DBSecret = Get-AzKeyVaultSecret -vaultname $VaultName -Name "<dbsecret>" -AsPlainText -EA Stop
+$AppId = Get-AzKeyVaultSecret -vaultname $VaultName -Name "<appid>" -AsPlainText -EA Stop
+$ClientSecret = Get-AzKeyVaultSecret -vaultname $VaultName -Name "<appsecret>" -AsPlainText -EA Stop
+$HaloAppId = Get-AzKeyVaultSecret -vaultname $VaultName -Name "<appid>" -AsPlainText -EA Stop
+$HaloClientSecret = Get-AzKeyVaultSecret -vaultname $VaultName -Name "<appsecret>" -AsPlainText -EA Stop
+$HaloTenantName = "tenantname"
+$HaloAgentURL = "https://your.halopsa.url"
+$number = "+1XXXXXXXXXX"
 
-
-#Connect to SQL for logging - remove this block only if you dont want to log to SQL
+#Connect to SQL for logging
+$tableName = "dbo.SMSLog"
 $Connection = New-Object System.Data.SQLClient.SQLConnection
-$Connection.ConnectionString = "Server=$SQLServer;Database=$DBName;Uid=$SQLUser;Pwd=$DBSecret;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
+$Connection.ConnectionString = "Server=tpskynetdb.database.windows.net;Database=SkynetDB;Uid=techpulse;Pwd=$DBSecret;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
 $Connection.Open()
 $Command = New-Object System.Data.SQLClient.SQLCommand
 $Command.Connection = $Connection
@@ -177,7 +135,7 @@ $AdditionalDetail = $AdditionalDetails -join ", "
 
 # Twilio API endpoint and POST params
 $url = "https://api.twilio.com/2010-04-01/Accounts/$sid/Messages.json"
-$params = @{ To = $MFAPhone; From = $FromNumber; Body = "Please give this code to your technician to verify your identity: $Random" }
+$params = @{ To = $MFAPhone; From = $number; Body = "TechPulse Support - Please give this code to your technician to verify your identity: $Random" }
 
 # Create a credential object for HTTP basic auth
 $p = $token | ConvertTo-SecureString -asPlainText -Force
@@ -196,10 +154,34 @@ else
 	$Note = "VERIFICATION CODE: $Random - Request ID: $RequestID - Timestamp: $Timestamp - TARGET NUMBER: $MFAPhone - Twilio Response: Failed - Log Response: Failure"
 }
 
-$Token = Get-HaloPSAToken -ClientID $HaloAppId -ClientSecret $HaloSecret -AgentDomain $AgentDomain
-New-HaloPrivateNote -TicketID $TicketID -Note $Note -Token $Token -AgentDomain $AgentDomain
+Write-Output "Connecting to HaloPSA"
 
-#REMOVE BELOW HERE IF YOU DONT WANT TO USE SQL LOGGING
+try
+{
+	Connect-HaloAPI -ClientID $HaloAppID -Tenant $HaloTenantName -URL $HaloAgentURL -ClientSecret $HaloClientSecret -Scopes "edit:tickets"
+	Write-Output "Successfully connected to HaloPSA"
+}
+catch
+{
+	Write-Output $_.Exception.Message
+}
+
+$Body = [PSCustomObject]@{
+    "ticket_id" = "$TicketID"
+    "outcome" = "Private Note"
+    "outcome_id" = 7
+    "who_type" = 1
+    "who" = "Automation API"
+    "who_agentid" = 25
+    "hiddenfromuser" = 1
+    "note" = "$note"
+}
+
+New-HaloAction -Action $Body 
+
+Disconnect-MgGraph
+
+
 $insertquery = "
 		INSERT INTO $tableName
 		([RequestID],[Timestamp],[TicketID],[Number],[Code])
