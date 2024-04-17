@@ -1,0 +1,61 @@
+SELECT 
+    AgentMetrics.[Agent ID],
+    AgentMetrics.[Agent],
+    AREA.aareadesc AS [Client Name],
+    AgentMetrics.[Total Hours],
+    AgentMetrics.[Total Cost],
+    AgentMetrics.[Total Profit],
+    AgentMetrics.[Cost per Hour],
+    AgentMetrics.[Revenue per Hour],
+    AgentMetrics.[Profit per Hour],
+    AreaRevenue.[Total Revenue],
+    AreaCostAndHours.[Total Cost for Client],
+    AreaCostAndHours.[Total Hours for Client],
+    ROUND(
+        (AreaRevenue.[Total Revenue] - AreaCostAndHours.[Total Cost for Client]) / AreaCostAndHours.[Total Hours for Client],
+        2
+    ) AS [Client Effective Rate]
+FROM 
+    (
+        SELECT 
+            ACTIONS.whoagentid AS [Agent ID],
+            uname AS [Agent],
+            FAULTS.areaint AS [Area ID],
+            ROUND(SUM(timetaken), 2) AS [Total Hours],
+            ROUND(SUM(ucostprice * timetaken), 2) AS [Total Cost],
+            ROUND(SUM(ActionChargeAmount) - SUM(ucostprice * timetaken), 2) AS [Total Profit],
+            ROUND(SUM(ucostprice * timetaken) / SUM(timetaken), 2) AS [Cost per Hour],
+            ROUND(SUM(ActionChargeAmount) / SUM(timetaken), 2) AS [Revenue per Hour],
+            ROUND((SUM(ActionChargeAmount) - SUM(ucostprice * timetaken)) / SUM(timetaken), 2) AS [Profit per Hour]
+        FROM 
+            ACTIONS
+        JOIN 
+            FAULTS ON ACTIONS.faultid = FAULTS.faultid
+        JOIN 
+            uname ON ACTIONS.whoagentid = uname.unum
+        WHERE 
+            FAULTS.dateoccured > @startdate AND FAULTS.dateoccured < @enddate
+            AND timetaken > 0
+        GROUP BY 
+            ACTIONS.whoagentid, uname, FAULTS.areaint
+    ) AS AgentMetrics
+JOIN (
+    SELECT AREA.aarea, ROUND(SUM(CAST(INVOICEDETAIL.IDNet_Amount AS MONEY)), 2) AS [Total Revenue]
+    FROM AREA
+    JOIN INVOICEHEADER ON AREA.aarea = INVOICEHEADER.IHaarea
+    JOIN INVOICEDETAIL ON INVOICEHEADER.ihid = INVOICEDETAIL.IdIHid
+    WHERE INVOICEHEADER.IHInvoice_Date > @startdate AND INVOICEHEADER.IHInvoice_Date < @enddate
+      AND INVOICEDETAIL.ID_ItemID IN (101, 201, 301) ###***###***CHANGE THESE TO THE HALO IDs OF PRODUCTS THAT REPRESENT MANAGED SERVICES AYCE ONLY***###***###
+    GROUP BY AREA.aarea
+) AS AreaRevenue ON AgentMetrics.[Area ID] = AreaRevenue.aarea
+JOIN (
+    SELECT FAULTS.areaint AS [Area ID], ROUND(SUM(timetaken), 2) AS [Total Hours for Client], ROUND(SUM(uname.ucostprice * timetaken), 2) AS [Total Cost for Client]
+    FROM ACTIONS
+    JOIN FAULTS ON ACTIONS.faultid = FAULTS.faultid
+    JOIN uname ON ACTIONS.whoagentid = uname.unum
+    WHERE FAULTS.dateoccured > @startdate AND FAULTS.dateoccured < @enddate
+      AND timetaken > 0
+    GROUP BY FAULTS.areaint
+) AS AreaCostAndHours ON AgentMetrics.[Area ID] = AreaCostAndHours.[Area ID]
+JOIN 
+    AREA ON AreaRevenue.aarea = AREA.aarea
