@@ -1,0 +1,186 @@
+{
+  "id": null,
+  "guid": null,
+  "name": "PagerDuty (TechPulse)",
+  "module_id": 0,
+  "authorizationtype": 0,
+  "granttype": 0,
+  "client_id": "",
+  "username": "",
+  "headerprefix": "",
+  "algorithm": 0,
+  "bearername": "Bearer",
+  "bearerlocation": 0,
+  "resourcebaseurl": "",
+  "certificate_name": "",
+  "library_licence_name": "",
+  "major_version_number": 0,
+  "minor_version_number": 0,
+  "patch_version_number": 0,
+  "version_number": "4.20.69",
+  "methods": [
+    {
+      "id": null,
+      "guid": null,
+      "integration_id": null,
+      "integration_name": null,
+      "integration_baseurl": "",
+      "name": "Send PagerDuty Alert (TechPulse)",
+      "full_name": null,
+      "resource": "https://events.pagerduty.com",
+      "path": "/v2/enqueue",
+      "method": 1,
+      "authorizationtype": -1,
+      "requesttype": 1,
+      "responsetype": 0,
+      "requestbody": "{\r\n  \"payload\": {\r\n    \"summary\": \"<<ticket^id!>>:<<ticket^user_name!>> | <<ticket^client_name!>> | <<ticket^summary!>>\",\r\n    \"source\": \"HaloPSA\",\r\n    \"severity\": \"critical\",\r\n    \"custom_details\": {\r\n      \"Ticket Details\": \"<<ticket^details!>>\",\r\n      \"Date Logged\": \"<<ticket^dateoccurred!>>\",\r\n      \"Client\": \"<<ticket^client_name!>>\",\r\n      \"Site\": \"<<ticket^site_name!>>\",\r\n      \"Ticket ID\": \"<<ticket^id!>>\",\r\n      \"User Name:\": \"<<ticket^user_name!>>\"\r\n    }\r\n  },\r\n  \"routing_key\": \"YOUR_PAGERDUTY_ROUTING_KEY\",\r\n  \"dedup_key\": \"<<ticket^id!>>\",\r\n  \"images\": [],\r\n  \"links\": [\r\n    {\r\n      \"href\": \"https://YOUR.HALOPSA.URL/tickets?id=<<ticket^id!>>\",\r\n      \"text\": \"Link to Ticket #<<ticket^id!>>\"\r\n    }\r\n  ],\r\n  \"event_action\": \"trigger\"\r\n}",
+      "uri_params": [
+        {
+          "id": 152,
+          "method_id": 13,
+          "type": 0,
+          "step_id": 0,
+          "step_name": ""
+        },
+        {
+          "id": 153,
+          "method_id": 13,
+          "type": 0,
+          "step_id": 0,
+          "step_name": ""
+        },
+        {
+          "id": 154,
+          "method_id": 13,
+          "type": 0,
+          "step_id": 0,
+          "step_name": ""
+        },
+        {
+          "id": 155,
+          "method_id": 13,
+          "type": 0,
+          "step_id": 0,
+          "step_name": ""
+        },
+        {
+          "id": 156,
+          "method_id": 13,
+          "type": 0,
+          "step_id": 0,
+          "step_name": ""
+        },
+        {
+          "id": 157,
+          "method_id": 13,
+          "type": 0,
+          "step_id": 0,
+          "step_name": ""
+        },
+        {
+          "id": 158,
+          "method_id": 13,
+          "type": 0,
+          "step_id": 0,
+          "step_name": ""
+        },
+        {
+          "id": 159,
+          "method_id": 13,
+          "type": 0,
+          "step_id": 0,
+          "step_name": ""
+        },
+        {
+          "id": 160,
+          "method_id": 13,
+          "type": 0,
+          "step_id": 0,
+          "step_name": ""
+        },
+        {
+          "id": 161,
+          "method_id": 13,
+          "type": 0,
+          "step_id": 0,
+          "step_name": ""
+        }
+      ],
+      "headers": [],
+      "body_mappings": [
+        {
+          "id": 162,
+          "method_id": 13,
+          "type": 2,
+          "step_id": 0,
+          "step_name": ""
+        },
+        {
+          "id": 163,
+          "method_id": 13,
+          "type": 2,
+          "step_id": 0,
+          "step_name": ""
+        },
+        {
+          "id": 164,
+          "method_id": 13,
+          "type": 2,
+          "step_id": 0,
+          "step_name": ""
+        },
+        {
+          "id": 165,
+          "method_id": 13,
+          "type": 2,
+          "step_id": 0,
+          "step_name": ""
+        },
+        {
+          "id": 166,
+          "method_id": 13,
+          "type": 2,
+          "step_id": 0,
+          "step_name": ""
+        },
+        {
+          "id": 167,
+          "method_id": 13,
+          "type": 2,
+          "step_id": 0,
+          "step_name": ""
+        },
+        {
+          "id": 168,
+          "method_id": 13,
+          "type": 2,
+          "step_id": 0,
+          "step_name": ""
+        },
+        {
+          "id": 169,
+          "method_id": 13,
+          "type": 2,
+          "step_id": 0,
+          "step_name": ""
+        },
+        {
+          "id": 170,
+          "method_id": 13,
+          "type": 2,
+          "step_id": 0,
+          "step_name": ""
+        },
+        {
+          "id": 171,
+          "method_id": 13,
+          "type": 2,
+          "step_id": 0,
+          "step_name": ""
+        }
+      ],
+      "output_variables": []
+    }
+  ],
+  "access_control": null
+}
