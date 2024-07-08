@@ -13,7 +13,7 @@ This integration allows HaloPSA to send detailed alerts to PagerDuty. It can be 
 - **Endpoint**: `https://events.pagerduty.com/v2/enqueue`
 - **Payload**: Contains detailed ticket information including summary, source, severity, and custom details.
 
-For more information, please refer to the [Outgoing Integration README](outbound%20integration/README.md).
+For more information, please refer to the [Outgoing Integration README](Outbound%20Integration/readme.md).
 
 ### 2. Incoming Integration: Trigger Actions in HaloPSA from PagerDuty
 
@@ -23,15 +23,15 @@ This integration allows HaloPSA to receive webhooks from PagerDuty and trigger s
 - **Runbook Type**: Webhook Listener
 - **Payload**: Processes incoming alerts from PagerDuty and performs defined actions in HaloPSA.
 
-For more information, please refer to the [Incoming Integration README](inbound%20integration/README.md).
+For more information, please refer to the [Incoming Integration README](Inbound%20Integration/readme.md).
 
 ## Repository Structure
 
 ```plaintext
 .
-├── incoming-integration
+├── incoming integration
 │   └── README.md
-├── outgoing-integration
+├── outgoing integration
 │   └── README.md
 └── README.md
 ```
