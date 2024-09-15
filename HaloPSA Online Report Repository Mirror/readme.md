@@ -1,10 +1,10 @@
-# Halo PSA Report Extractor
+# HaloPSA Online Repo Report Extractor
 
-This PowerShell script extracts SQL reports from the Halo PSA (Professional Services Automation) system and saves them as individual SQL files.
+This PowerShell script extracts SQL reports from the HaloPSA online reporting repository system and saves them as individual SQL files locally. This is useful in using the queries as context in AI applications or to train schema models.
 
 ## Features
 
-- Retrieves all reports from the Halo PSA API
+- Retrieves all reports from the HaloPSA Online Repository reporting API endpoint
 - Handles pagination to fetch all available reports
 - Extracts the SQL content for each report
 - Saves each report's SQL as a separate file
@@ -12,13 +12,13 @@ This PowerShell script extracts SQL reports from the Halo PSA (Professional Serv
 
 ## Prerequisites
 
-- PowerShell 5.1 or later
-- Access to Halo PSA API (Client ID, Client Secret, Tenant Name, and API URL)
+- PowerShell 7 or later
+- Access to HaloPSA API (Client ID, Client Secret, Tenant Name, and API URL)
 - Appropriate API scopes for accessing reports
 
 ## Setup
 
-1. Clone this repository or download the `HaloReportGet.ps1` script.
+1. Clone this repository or download the `HaloPSA-Report-Extractor.ps1` script.
 2. Open the script in a text editor.
 3. Modify the following line with your Halo PSA API credentials:
 
@@ -38,7 +38,7 @@ $clientName = "Your%20MSP%20Name"
 3. Run the script:
 
 ```powershell
-.\HaloReportGet.ps1
+.\HaloPSA-Report-Extractor.ps1
 ```
 The script will create a `HaloReports` directory in the same location and save all extracted SQL reports as individual files within this directory.
 
