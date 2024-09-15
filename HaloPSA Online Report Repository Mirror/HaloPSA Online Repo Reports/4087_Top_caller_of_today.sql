@@ -1,0 +1,1 @@
+select top 100 percent count(clid) as [Count], (select top 1 clusername from calllog s where s.clcallerid = z.clcallerid and s.clusername <> '' and s.clusername <> 'General User' group by clusername order by count(clusername) desc) as [Person] from calllog z where cldate > @startdate and cldate < @enddate group by clcallerid

@@ -1,0 +1,1 @@
+select Idesc as 'Description',iqtyinstock as 'Qty In Stock',iqtyonorder as ' Qty On Order' from Item where iqtyinstock<5   and idesc not like '%misc'   and idesc not like '%iphone' and idesc not like '%office professional%'

@@ -1,0 +1,1 @@
+select isnull(nullif(round( AVG(cleartime),2),0),0) as 'AverageResolutionTimeLast7DaysHours'from Faults join requesttype on rtid=requesttypenew where datecleared> GETDATE()-7 and FexcludefromSLA = 0 and fdeleted=0 and rtisproject=0 and rtisopportunity=0

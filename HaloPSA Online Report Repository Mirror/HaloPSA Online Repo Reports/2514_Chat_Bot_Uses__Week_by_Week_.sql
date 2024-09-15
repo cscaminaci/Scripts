@@ -1,0 +1,1 @@
+select distinct count(LCMchatid) as [Chat Count], convert(date,dateadd(week, datediff(week, 0, LCMTimestamp ), 0))   as [Week Commencing] from livechatmsg where LCMsender not in (0) group by convert(date,dateadd(week, datediff(week, 0, LCMTimestamp ), 0))     

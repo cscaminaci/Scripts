@@ -1,0 +1,31 @@
+select
+AAREA as 'Customer ID'
+,AAREADESC as 'Customer Name'
+,adatecreated as 'Date Created'
+,AGFIclientid as 'N-Able ID'
+,AKaseyaID as 'Kaseya ID'
+,ANinjaRMMId as 'Ninja ID'
+,AXeroTenantId as 'Xero ID'
+,AServiceNowId as 'Service Now ID'
+,ADevice42Id as 'Device24 ID'
+,AConnectWiseId as 'Connectwise ID'
+,ADattoId as 'Datto ID'
+,AAutotaskId as 'AutoTask ID'
+,AAteraId as 'Atera ID'
+,AKashflowId as 'Kashflow ID'
+,AITGlueId as 'IT Glue ID' 
+,ASnelStartId as 'SnelStart ID'
+,ASyncroId as 'Syncro ID'
+,adattocommerceid as 'Datto Commerce ID'
+,asnowid as 'Snow ID'
+,AAuvikId as 'Auvik ID'
+,AHubSpotId as 'Hubspot ID'
+,AQBOCompanyId as 'QuickBooks ID'
+,asyncedtointacct as 'Synced with Intacct?'
+,ajirakey  as 'Jira Key'
+,aatazuretenantid as 'Azure ID'
+,ELThirdPartyUrl as 'Pax8 ID'
+FROM area
+left join areaazuretenant on aarea=aatareaid
+left join externallink on ELHaloId = aarea
+

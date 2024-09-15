@@ -1,0 +1,1 @@
+   select idesc as Item,  icostprice as Cost,                        (isnull((select slqtyinstock from StockLevel where SLid=Iid and SLlocation>0),0)   - isnull((select slqtyinstock from StockLevel where SLid=Iid and SLlocation<0),0))   as 'Qty In Stock'   from item where idesc not like '%misc'   and idesc not like '%iphone' and idesc not like '%office professional%'

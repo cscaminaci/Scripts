@@ -1,0 +1,1 @@
+select faultid as [Ticket ID],symptom as [Subject],rtdesc as [Ticket Type] from Faults join requesttype on rtid=requesttypenew where FResponseDate> GETDATE()-7 and FexcludefromSLA = 0 and fdeleted=0 and rtisproject=0 and rtisopportunity=0

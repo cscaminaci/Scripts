@@ -1,0 +1,1 @@
+select uusername as [User], (select sdesc from site where ssitenum=usite) as [Site], (select aareadesc from area where aarea=(select sarea from site where ssitenum=usite))as [Customer], count(*) as [Number of Records] from users group by usite, uusername having count(*) > 1

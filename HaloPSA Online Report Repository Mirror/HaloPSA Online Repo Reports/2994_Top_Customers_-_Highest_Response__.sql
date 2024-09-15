@@ -1,0 +1,11 @@
+select 
+
+aareadesc as [Contact],
+cast(isnull(CONVERT(DECIMAL(4,2),(select count(faultid) from faults where SLAresponseState='I' and areaint=aarea
+and dateoccured>@startdate and dateoccured<@enddate)/(NULLIF((select count(faultid) from faults
+where (SLAresponseState='O' or SLAresponseState='I') and areaint=aarea and dateoccured>@startdate and 
+dateoccured<@enddate)*1.0,0)))*100,100)as integer) as [Response Rate %]
+
+from area
+
+where aarea not in (1,12)
